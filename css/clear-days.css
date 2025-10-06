@@ -1,0 +1,80 @@
+/* || Imports */
+
+@import url('https://fonts.googleapis.com/css2?family=Space+Mono:ital,wght@0,400;0,700;1,400;1,700&display=swap');
+
+/* || Variables */
+
+:root {
+    /* || Colors -- */
+    --color-background-page: #ffffff;
+    --color-background-primary: #efefef;
+    --color-text-primary: #000000;
+    --color-accent: #1484e6;
+    --color-border-primary: #c3c7cb;
+    /* || Dimension */
+
+}
+
+/* || General styles */
+
+::selection {
+    color: var(--color-background-page);
+    background-color: var(--color-accent);
+}
+
+html {
+    background-color: var(--color-background-page);
+    color: var(--color-text-primary);
+}
+
+body {
+    margin: 0;
+}
+
+.page-layout {
+    display: flex;
+    flex-direction: column-reverse;
+}
+
+.panel {
+    background-color: var(--color-background-primary);
+}
+
+.canvas-container {
+    width: 100%;
+    height: calc(100vh - 300px);
+}
+
+#space-canvas {
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    cursor: crosshair;
+    touch-action: none;
+}
+
+@media (min-width: 768px) {
+    .page-layout {
+        flex-direction: row;
+    }
+
+    .panel {
+        width: 400px;
+        height: 100vh;
+    }
+
+    .canvas-container {
+        height: 100vh;
+    }
+}
+
+/* || Typography */
+
+* {
+    font-family: "Space Mono", monospace;
+}
+
+/* ||  */
+
+/* … */
