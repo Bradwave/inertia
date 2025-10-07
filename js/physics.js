@@ -2,12 +2,14 @@
  * || Canvas stuff
  */
 
-const spaceCanvas = document.getElementById("space-canvas");
-const spaceCtx = spaceCanvas.getContext("2d");
+const space = { ctx: document.getElementById("space-canvas").getContext("2d"), width: 0, height: 0 };
+const posPlot = { ctx: document.getElementById("position-canvas").getContext("2d"), width: 0, height: 0 };
+const velPlot = { ctx: document.getElementById("velocity-canvas").getContext("2d"), width: 0, height: 0 };
+const accPlot = { ctx: document.getElementById("acceleration-canvas").getContext("2d"), width: 0, height: 0 };
 
-let width;
-let height;
-let dpi;
+const plots = [space, posPlot, velPlot, accPlot];
+
+let dpi = window.devicePixelRatio;
 
 let resizeTimeout;
 
@@ -15,32 +17,36 @@ let resizeTimeout;
 window.addEventListener("resize", () => {
     // Clear plots !!! (it is truly needed though?)
 
-    spaceCanvas.style.opacity = 0;
-    spaceCanvas.style.visibility = "collapse";
+    plots.forEach(plot => {
+        plot.ctx.canvas.style.opacity = 0;
+        plot.ctx.canvas.style.visibility = "collapse";
+    })
 
     clearTimeout(resizeTimeout);
     resizeTimeout = setTimeout(() => {
-        spaceCanvas.style.visibility = "visible";
-        spaceCanvas.style.opacity = 1;
-
-        resizeCanvas();
+        plots.forEach(plot => {
+            plot.ctx.canvas.style.visibility = "visible";
+            plot.ctx.canvas.style.opacity = 1;
+            resizeCanvas(plot);
+        })
 
         drawSpace();
+        drawPlots();
     }, 200);
 });
 
-resizeCanvas = () => {
+resizeCanvas = (plot) => {
     dpi = window.devicePixelRatio;
 
     // Sets the canvas width and height based on the dpi resolution of the page
-    const styleWidth = +getComputedStyle(spaceCanvas).getPropertyValue("width").slice(0, -2);
-    const styleHeight = +getComputedStyle(spaceCanvas).getPropertyValue("height").slice(0, -2);
-    spaceCanvas.setAttribute('height', Math.round(styleHeight * dpi));
-    spaceCanvas.setAttribute('width', Math.round(styleWidth * dpi));
+    const styleWidth = +getComputedStyle(plot.ctx.canvas).getPropertyValue("width").slice(0, -2);
+    const styleHeight = +getComputedStyle(plot.ctx.canvas).getPropertyValue("height").slice(0, -2);
+    plot.ctx.canvas.setAttribute('height', Math.round(styleHeight * dpi));
+    plot.ctx.canvas.setAttribute('width', Math.round(styleWidth * dpi));
 
     // Saves the width and height of the resized canvas, multiplied by dpi?
-    width = Math.round(spaceCanvas.offsetWidth * dpi);
-    height = Math.round(spaceCanvas.offsetHeight * dpi);
+    plot.width = Math.round(plot.ctx.canvas.offsetWidth * dpi);
+    plot.height = Math.round(plot.ctx.canvas.offsetHeight * dpi);
 }
 
 /**
@@ -53,7 +59,6 @@ let acceleration = { x: 0, y: 0 };
 let maxSpeed = 100;
 
 let eventsSize = 500;
-let velAvgTime = 5;
 let accAvgTime = 10;
 let velocities = [...Array(accAvgTime)].map(() => { return { x: 0, y: 0 }; });
 let particleEvents;
@@ -75,36 +80,42 @@ updatePhysics = () => {
         particle.y += .1 * inc.y;
     }
 
-    velocity.x = (particleEvents[0].x - particleEvents[velAvgTime - 1].x) / (2);
-    velocity.y = (particleEvents[0].y - particleEvents[velAvgTime - 1].y) / (2);
+    velocity.x = (3 * particle.x - 4 * particleEvents[10].x + particleEvents[20].x) / 20;
+    velocity.y = (3 * particle.y - 4 * particleEvents[10].y + particleEvents[20].y) / 20;
 
     velocities.unshift({ x: velocity.x, y: velocity.y });
     // Limits the size of the stored velocities array
     if (velocities.length > accAvgTime - 1) velocities.pop();
 
-    acceleration.x = (velocities[0].x - velocities[accAvgTime - 1].x) / (10);
-    acceleration.y = (velocities[0].y - velocities[accAvgTime - 1].y) / (10);
+    acceleration.x = (particle.x - 2 * particleEvents[10].x + particleEvents[20].x) / 100;
+    acceleration.y = (particle.y - 2 * particleEvents[10].y + particleEvents[20].y) / 100;
 
     let isParticleStationary = true;
     velocities.forEach(v => {
-        if ((v.x !== 0) || (v.y !== 0)) isParticleStationary = false;
+        if ((Math.sqrt(v.x ** 2 + v.y ** 2) > 1)) isParticleStationary = false;
     });
+
+    if (isParticleStationary) {
+        velocity.x = 0;
+        velocity.y = 0;
+        acceleration.x = 0;
+        acceleration.y = 0;
+        if (isParticleMoving && !isCursorDown) {
+            isParticleMoving = false;
+        }
+    }
 
     if (!isParticleStationary || isParticleMoving) {
         particleEvents.unshift({
-            x: particle.x,
-            y: particle.y,
-            xVelocity: velocity.x,
-            yVelocity: velocity.y,
-            xAcceleration: acceleration.x,
-            yAcceleration: acceleration.y,
-            velocityAbs: Math.sqrt(velocity.x * velocity.x + velocity.y * velocity.y),
-            accelerationAbs: Math.sqrt(acceleration.x * acceleration.x + acceleration.y * acceleration.y),
-            angle: Math.atan2(acceleration.x, acceleration.y)
+            x: particle.x, y: particle.y,
+            vx: velocity.x, vy: velocity.y,
+            ax: acceleration.x, ay: acceleration.y,
+            vAbs: Math.sqrt(velocity.x * velocity.x + velocity.y * velocity.y),
+            aAbs: Math.sqrt(acceleration.x * acceleration.x + acceleration.y * acceleration.y),
+            vAngle: Math.atan2(velocity.x, velocity.y),
+            aAngle: Math.atan2(acceleration.x, acceleration.y),
         });
     }
-
-    if (isParticleStationary && isParticleMoving && !isCursorDown) isParticleMoving = false;
 
     // Limits the size of the stored events array
     if (particleEvents.length > eventsSize) particleEvents.pop();
@@ -148,7 +159,7 @@ updatePosition = () => {
     }
 }
 
-spaceCanvas.onpointermove = (e) => {
+space.ctx.canvas.onpointermove = (e) => {
     if (isCursorDown) {
         cursor = { x: getCursorX(e), y: getCursorY(e) };
         if ((particle.x - cursor.x) ** 2 + (particle.y - cursor.y) ** 2 < selectionRadius ** 2) {
@@ -157,7 +168,7 @@ spaceCanvas.onpointermove = (e) => {
     }
 }
 
-spaceCanvas.onpointerdown = (e) => {
+space.ctx.canvas.onpointerdown = (e) => {
     cursor = { x: getCursorX(e), y: getCursorY(e) };
 
     isCursorDown = true;
@@ -170,15 +181,11 @@ spaceCanvas.onpointerdown = (e) => {
     }
 }
 
-spaceCanvas.onpointerup = (e) => {
+space.ctx.canvas.onpointerup = (e) => {
     stopParticleInteraction();
 }
 
-spaceCanvas.onpointercancel = (e) => {
-    stopParticleInteraction();
-}
-
-spaceCanvas.onpointerleave = (e) => {
+space.ctx.canvas.onpointercancel = (e) => {
     stopParticleInteraction();
 }
 
@@ -190,11 +197,11 @@ stopParticleInteraction = () => {
 }
 
 getCursorX = (e) => {
-    return (e.clientX - spaceCanvas.offsetLeft) * dpi;
+    return (e.clientX - space.ctx.canvas.offsetLeft) * dpi;
 }
 
 getCursorY = (e) => {
-    return (e.clientY - spaceCanvas.offsetTop) * dpi;
+    return (e.clientY - space.ctx.canvas.offsetTop) * dpi;
 }
 
 /**
@@ -205,68 +212,152 @@ let velocityScale = 5;
 let accelerationScale = 40;
 
 init = () => {
-    resizeCanvas();
+    plots.forEach(plot => {
+        resizeCanvas(plot);
+    })
 
-    particle = { x: width / 2, y: height / 2 };
+    particle = { x: space.width / 2, y: space.height / 2 };
     particleEvents = [...Array(eventsSize)].map(() => {
         return {
-            x: particle.x,
-            y: particle.y,
-            accelerationAbs: 0,
-            angle: 0
+            x: particle.x, y: particle.y,
+            vx: 0, vy: 0,
+            ax: 0, ay: 0,
+            vAbs: 0, aAbs: 0,
+            vAngle: 0, aAngle: 0
         };
     });
 
     drawSpace();
+    drawPlots();
 }
 
 drawSpace = () => {
     updatePosition();
     updatePhysics();
 
-    spaceCtx.clearRect(0, 0, width, height);
+    space.ctx.clearRect(0, 0, space.width + 1, space.height + 1);
 
     if (isParticleMoving && !isParticleSelected) {
-        spaceCtx.strokeStyle = "#aed2f5ff";
-        spaceCtx.lineWidth = 3;
-        spaceCtx.setLineDash([2, 4]);
+        space.ctx.strokeStyle = "#aed2f5ff";
+        space.ctx.lineWidth = 3;
+        space.ctx.setLineDash([2, 4]);
 
-        spaceCtx.beginPath();
-        spaceCtx.moveTo(particle.x, particle.y);
-        spaceCtx.lineTo(cursor.x, cursor.y);
-        spaceCtx.stroke();
+        space.ctx.beginPath();
+        space.ctx.moveTo(particle.x, particle.y);
+        space.ctx.lineTo(cursor.x, cursor.y);
+        space.ctx.stroke();
     }
 
     // Velocity
 
-    spaceCtx.strokeStyle = "#84bff6ff";
-    spaceCtx.lineWidth = 3;
-    spaceCtx.setLineDash([]);
+    space.ctx.strokeStyle = "#84bff6ff";
+    space.ctx.lineWidth = 3;
+    space.ctx.setLineDash([]);
 
-    spaceCtx.beginPath();
-    spaceCtx.moveTo(particle.x, particle.y);
-    spaceCtx.lineTo(particle.x + velocity.x * velocityScale, particle.y + velocity.y * velocityScale);
-    spaceCtx.stroke();
+    space.ctx.beginPath();
+    space.ctx.moveTo(particle.x, particle.y);
+    space.ctx.lineTo(particle.x + velocity.x * velocityScale, particle.y + velocity.y * velocityScale);
+    space.ctx.stroke();
 
     // Acceleration
 
-    spaceCtx.strokeStyle = "#000000";
-    spaceCtx.lineWidth = 3;
+    space.ctx.strokeStyle = "#000000";
+    space.ctx.lineWidth = 3;
 
-    spaceCtx.beginPath();
-    spaceCtx.moveTo(particle.x, particle.y);
-    spaceCtx.lineTo(particle.x + acceleration.x * accelerationScale, particle.y + acceleration.y * accelerationScale);
-    spaceCtx.stroke();
+    space.ctx.beginPath();
+    space.ctx.moveTo(particle.x, particle.y);
+    space.ctx.lineTo(particle.x + acceleration.x * accelerationScale, particle.y + acceleration.y * accelerationScale);
+    space.ctx.stroke();
 
     // Particle
 
-    spaceCtx.fillStyle = "#1484e6";
+    space.ctx.fillStyle = "#1484e6";
 
-    spaceCtx.beginPath();
-    spaceCtx.arc(particle.x, particle.y, 20, 0, 2 * Math.PI);
-    spaceCtx.fill();
+    space.ctx.beginPath();
+    space.ctx.arc(particle.x, particle.y, 20, 0, 2 * Math.PI);
+    space.ctx.fill();
 
     requestAnimationFrame(() => { drawSpace(); });
+}
+
+drawPlots = () => {
+    const endPoint = Math.min(posPlot.width, eventsSize);
+
+    // Position
+    posPlot.ctx.clearRect(0, 0, posPlot.width + 1, posPlot.height + 1);
+
+    posPlot.ctx.strokeStyle = "#d1d1d1ff";
+    posPlot.ctx.lineWidth = 2;
+
+    posPlot.ctx.beginPath();
+    posPlot.ctx.moveTo(0, posPlot.height / 2);
+    posPlot.ctx.lineTo(posPlot.width, posPlot.height / 2);
+    posPlot.ctx.stroke();
+
+    posPlot.ctx.strokeStyle = "#1484e6";
+    posPlot.ctx.lineWidth = 4;
+
+    posPlot.ctx.beginPath();
+    posPlot.ctx.moveTo(0, particleEvents[1].y / space.height * posPlot.height);
+    for (let i = 1; i < endPoint; i++) {
+        posPlot.ctx.lineTo(
+            i / endPoint * posPlot.width,
+            particleEvents[i].y / space.height * posPlot.height
+        );
+    }
+    posPlot.ctx.stroke();
+
+    // Velocity
+
+    velPlot.ctx.clearRect(0, 0, velPlot.width + 1, velPlot.height + 1);
+
+    velPlot.ctx.strokeStyle = "#d1d1d1ff";
+    velPlot.ctx.lineWidth = 2;
+
+    velPlot.ctx.beginPath();
+    velPlot.ctx.moveTo(0, velPlot.height / 2);
+    velPlot.ctx.lineTo(velPlot.width, velPlot.height / 2);
+    velPlot.ctx.stroke();
+
+    velPlot.ctx.strokeStyle = "#1484e6";
+    velPlot.ctx.lineWidth = 4;
+
+    velPlot.ctx.beginPath();
+    velPlot.ctx.moveTo(0, velPlot.height / 2 - 0.9 * particleEvents[1].vy);
+    for (let i = 1; i < endPoint; i++) {
+        velPlot.ctx.lineTo(
+            i / endPoint * velPlot.width,
+            velPlot.height / 2 - 0.9 * particleEvents[i].vy
+        );
+    }
+    velPlot.ctx.stroke();
+
+    // Acceleration
+
+    accPlot.ctx.clearRect(0, 0, accPlot.width + 1, accPlot.height + 1);
+
+    accPlot.ctx.strokeStyle = "#d1d1d1ff";
+    accPlot.ctx.lineWidth = 2;
+
+    accPlot.ctx.beginPath();
+    accPlot.ctx.moveTo(0, accPlot.height / 2);
+    accPlot.ctx.lineTo(accPlot.width, accPlot.height / 2);
+    accPlot.ctx.stroke();
+
+    accPlot.ctx.strokeStyle = "#1484e6";
+    accPlot.ctx.lineWidth = 4;
+
+    accPlot.ctx.beginPath();
+    accPlot.ctx.moveTo(0, accPlot.height / 2 - 10 * particleEvents[1].ay);
+    for (let i = 1; i < endPoint; i++) {
+        accPlot.ctx.lineTo(
+            i / endPoint * accPlot.width,
+            accPlot.height / 2 - 10 * particleEvents[i].ay
+        );
+    }
+    accPlot.ctx.stroke();
+
+    requestAnimationFrame(() => { drawPlots(); });
 }
 
 init();

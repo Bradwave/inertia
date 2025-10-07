@@ -16,9 +16,19 @@
 <body>
     <div class="page-layout" tabindex="-1">
         <aside class="panel">
-            panel
+            <div class="plots-container">
+                <h2>
+                    <b>Inertia</b>
+                </h2>
+                <p>y-t</p>
+                <canvas id="position-canvas" class="plot-canvas" name="plot"></canvas>
+                <p>vy-t</p>
+                <canvas id="velocity-canvas" class="plot-canvas" name="plot"></canvas>
+                <p>ay-t</p>
+                <canvas id="acceleration-canvas" class="plot-canvas" name="plot"></canvas>
+            </div>
         </aside>
-        <div class="canvas-container">
+        <div class="space-canvas-container">
             <canvas id="space-canvas"></canvas>
         </div>
     </div>
