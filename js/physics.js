@@ -13,8 +13,23 @@ let dpi = window.devicePixelRatio;
 
 let resizeTimeout;
 
+let lastWidth = window.innerWidth;
+let lastHeight = window.innerHeight;
+
 // Resizes the canvas after 200 ms
 window.addEventListener("resize", () => {
+    const width = window.innerWidth;
+    const height = window.innerHeight;
+
+    // Ignore resize if width hasn't changed and height only slightly did
+    if (width === lastWidth && Math.abs(height - lastHeight) < 150) {
+        // Ignore address bar hide/show
+        return;
+    }
+
+    lastWidth = width;
+    lastHeight = height;
+
     // Clear plots !!! (it is truly needed though?)
 
     plots.forEach(plot => {
@@ -92,7 +107,7 @@ updatePhysics = () => {
 
     let isParticleStationary = true;
     velocities.forEach(v => {
-        if ((Math.sqrt(v.x ** 2 + v.y ** 2) > 1)) isParticleStationary = false;
+        if ((Math.sqrt(v.x ** 2 + v.y ** 2) > 2)) isParticleStationary = false;
     });
 
     if (isParticleStationary) {
