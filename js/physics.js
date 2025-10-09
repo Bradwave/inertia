@@ -50,7 +50,7 @@ window.addEventListener("resize", () => {
     }, 200);
 });
 
-resizeCanvas = (plot) => {
+const resizeCanvas = (plot) => {
     dpi = window.devicePixelRatio;
 
     // Sets the canvas width and height based on the dpi resolution of the page
@@ -73,12 +73,12 @@ let velocity = { x: 0, y: 0 };
 let acceleration = { x: 0, y: 0 };
 let maxSpeed = 100;
 
-let eventsSize = 500;
+let eventsSize = 200;
 let accAvgTime = 10;
 let velocities = [...Array(accAvgTime)].map(() => { return { x: 0, y: 0 }; });
 let particleEvents;
 
-updatePhysics = () => {
+const updatePhysics = () => {
     if (!isParticleSelected && isParticleMoving) {
         let inc = { x: 0, y: 0 };
 
@@ -95,15 +95,15 @@ updatePhysics = () => {
         particle.y += .1 * inc.y;
     }
 
-    velocity.x = (3 * particle.x - 4 * particleEvents[10].x + particleEvents[20].x) / 20;
-    velocity.y = (3 * particle.y - 4 * particleEvents[10].y + particleEvents[20].y) / 20;
+    velocity.x = (3 * particle.x - 4 * particleEvents[4].x + particleEvents[9].x) / 10;
+    velocity.y = (3 * particle.y - 4 * particleEvents[4].y + particleEvents[9].y) / 10;
 
     velocities.unshift({ x: velocity.x, y: velocity.y });
     // Limits the size of the stored velocities array
     if (velocities.length > accAvgTime - 1) velocities.pop();
 
-    acceleration.x = (particle.x - 2 * particleEvents[10].x + particleEvents[20].x) / 100;
-    acceleration.y = (particle.y - 2 * particleEvents[10].y + particleEvents[20].y) / 100;
+    acceleration.x = (particle.x - 2 * particleEvents[4].x + particleEvents[9].x) / 25;
+    acceleration.y = (particle.y - 2 * particleEvents[4].y + particleEvents[9].y) / 25;
 
     let isParticleStationary = true;
     velocities.forEach(v => {
@@ -159,7 +159,7 @@ let isParticleMoving = false;
 let isCursorDown = true;
 const selectionRadius = 15;
 
-updatePosition = () => {
+const updatePosition = () => {
     if (isParticleSelected) {
         lastCursor = isCursorDown ? cursor : particle;
         // The distance from the cursor and the particle is computed
@@ -204,34 +204,45 @@ space.ctx.canvas.onpointercancel = (e) => {
     stopParticleInteraction();
 }
 
-stopParticleInteraction = () => {
+const stopParticleInteraction = () => {
     if (isCursorDown) {
         isCursorDown = false;
         isParticleSelected = false;
     }
 }
 
-getCursorX = (e) => {
+const getCursorX = (e) => {
     return (e.clientX - space.ctx.canvas.offsetLeft) * dpi;
 }
 
-getCursorY = (e) => {
+const getCursorY = (e) => {
     return (e.clientY - space.ctx.canvas.offsetTop) * dpi;
 }
 
+document.getElementById("clear-button").onpointerup = (e) => {
+    clearParticleEvents();
+}
+
 /**
- * Rendering
+ * || Rendering
  */
 
 let velocityScale = 5;
 let accelerationScale = 40;
 
-init = () => {
+const init = () => {
     plots.forEach(plot => {
         resizeCanvas(plot);
     })
 
     particle = { x: space.width / 2, y: space.height / 2 };
+    clearParticleEvents();
+
+    drawSpace();
+    drawPlots();
+}
+
+const clearParticleEvents = () => {
     particleEvents = [...Array(eventsSize)].map(() => {
         return {
             x: particle.x, y: particle.y,
@@ -241,16 +252,49 @@ init = () => {
             vAngle: 0, aAngle: 0
         };
     });
-
-    drawSpace();
-    drawPlots();
 }
 
-drawSpace = () => {
+const drawSpace = () => {
     updatePosition();
     updatePhysics();
 
     space.ctx.clearRect(0, 0, space.width + 1, space.height + 1);
+
+    if (document.getElementById("show-trace").checked) {
+        // Velocity of past particles
+
+        space.ctx.strokeStyle = "#a3cef7ff";
+        space.ctx.lineWidth = 1;
+
+        particleEvents.forEach(p => {
+            space.ctx.beginPath();
+            space.ctx.moveTo(p.x, p.y);
+            space.ctx.lineTo(p.x + p.vx * velocityScale, p.y + p.vy * velocityScale);
+            space.ctx.stroke();
+        });
+
+        // Acceleration
+
+        space.ctx.strokeStyle = "#454545ff";
+        space.ctx.lineWidth = 1;
+
+        particleEvents.forEach(p => {
+            space.ctx.beginPath();
+            space.ctx.moveTo(p.x, p.y);
+            space.ctx.lineTo(p.x + p.ax * accelerationScale, p.y + p.ay * accelerationScale);
+            space.ctx.stroke();
+        })
+
+        // Particle
+
+        space.ctx.fillStyle = "#60a2dcff";
+
+        particleEvents.forEach(p => {
+            space.ctx.beginPath();
+            space.ctx.arc(p.x, p.y, 5, 0, 2 * Math.PI);
+            space.ctx.fill();
+        })
+    }
 
     if (isParticleMoving && !isParticleSelected) {
         space.ctx.strokeStyle = "#aed2f5ff";
@@ -295,7 +339,7 @@ drawSpace = () => {
     requestAnimationFrame(() => { drawSpace(); });
 }
 
-drawPlots = () => {
+const drawPlots = () => {
     const endPoint = Math.min(posPlot.width, eventsSize);
 
     // Position

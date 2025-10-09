@@ -86,6 +86,100 @@ canvas.plot-canvas {
     }
 }
 
+.centered {
+    padding: 20px;
+    display: grid;
+    place-items: center;
+}
+
+/* || Button */
+
+button.big-button {
+    width: 95%;
+    height: 40px;
+    border: none;
+    border-radius: 5px;
+    color: var(--color-background-page);
+    background-color: var(--color-accent);
+    font-weight: bold;
+    cursor: pointer;
+    transition: .1s;
+}
+
+button.big-button:hover {
+    background-color: #2079c7;
+}
+
+/* || Toggle switch */
+
+/* The switch - the box around the slider */
+.switch {
+    position: relative;
+    display: inline-block;
+    width: 40px;
+    height: 24px;
+}
+
+/* Hide default HTML checkbox */
+.switch input {
+    opacity: 0;
+    width: 0;
+    height: 0;
+}
+
+/* The slider */
+.slider {
+    position: absolute;
+    cursor: pointer;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    box-shadow: 0 0 0 2px var(--color-border-primary);
+    background-color: var(--color-background-page);
+    -webkit-transition: .1s;
+    transition: .1s;
+}
+
+.slider:before {
+    position: absolute;
+    content: "";
+    height: 16px;
+    width: 16px;
+    left: 4px;
+    bottom: 4px;
+    background-color: var(--color-border-primary);
+    -webkit-transition: .1s;
+    transition: .1s;
+}
+
+input:checked+.slider {
+    box-shadow: none;
+    background-color: var(--color-accent);
+}
+
+input:focus+.slider {
+    box-shadow:
+        0 0 0 3px var(--color-background-page),
+        0 0 0 6px var(--color-text-primary);
+}
+
+input:checked+.slider:before {
+    background-color: var(--color-background-page);
+    -webkit-transform: translateX(16px);
+    -ms-transform: translateX(16px);
+    transform: translateX(16px);
+}
+
+/* Rounded sliders */
+.slider.round {
+    border-radius: 24px;
+}
+
+.slider.round:before {
+    border-radius: 50%;
+}
+
 /* || Typography */
 
 * {
